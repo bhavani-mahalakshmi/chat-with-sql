@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,10 +12,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { ChatMessage as ChatMessageComponent } from "./ChatMessage";
-import type { ChatMessage, UnderstandQueryOutput as AIUnderstandQueryOutput, GenerateSQLOutput as AIGenerateSQLOutput } from "@/lib/types";
+import type { ChatMessage, UnderstandQueryOutput as AIUnderstandQueryOutput, GenerateSQLOutput as AIGenerateSQLOutput, GetDatabaseSchemaOutput } from "@/lib/types";
 import { understandQuery } from "@/ai/flows/understand-query";
 import { generateSQL } from "@/ai/flows/generate-sql";
+import { getDatabaseSchema } from "@/ai/flows/get-database-schema";
 import { useToast } from "@/hooks/use-toast";
 import { DataVisualizer } from "@/components/data-viz/DataVisualizer";
 import { Loader2, Send, Database, AlertTriangle } from "lucide-react";
@@ -48,7 +52,10 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [dbSchema, setDbSchema] = useState("");
+  const [dbUri, setDbUri] = useState("");
+  const [schemaInputMethod, setSchemaInputMethod] = useState<'manual' | 'uri'>('manual');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingSchema, setIsFetchingSchema] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -77,23 +84,66 @@ export function ChatInterface() {
     try {
       const understandOutput: AIUnderstandQueryOutput = await understandQuery({ query: userMessageContent });
 
-      if (!understandOutput.isDataRequest) {
-        addMessage("ai", `I've understood your query: "${userMessageContent}". It seems like a general question. While I'm best at data tasks, I can try to help! How can I assist you further with this?`);
-      } else {
-        if (dbSchema.trim() === "") {
-          addMessage("ai", "It looks like you're asking for data. Please provide the database schema in the section above so I can generate the correct SQL query.");
-          setIsLoading(false);
-          return;
+      let currentDbSchema = dbSchema;
+
+      if (understandOutput.isDataRequest) {
+        if (schemaInputMethod === 'uri') {
+          if (!dbUri.trim()) {
+            addMessage("ai", "Please provide a database URI to fetch the schema.");
+            setIsLoading(false);
+            return;
+          }
+          addMessage("ai", `Fetching schema from URI: ${dbUri}...`);
+          setIsFetchingSchema(true);
+          try {
+            const schemaOutput: GetDatabaseSchemaOutput = await getDatabaseSchema({ uri: dbUri });
+            currentDbSchema = schemaOutput.schema;
+            setDbSchema(currentDbSchema); // Update textarea with fetched schema for visibility
+            addMessage("ai", "Successfully fetched schema from URI.");
+          } catch (schemaError) {
+            console.error("Schema Fetch Error:", schemaError);
+            const schemaErrorMessage = schemaError instanceof Error ? schemaError.message : "Could not fetch schema from URI.";
+            toast({
+              title: "Schema Error",
+              description: schemaErrorMessage,
+              variant: "destructive",
+            });
+            addMessage("ai", (
+              <Alert variant="destructive" className="bg-destructive/10">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertTitle className="text-destructive">Schema Fetch Failed</AlertTitle>
+                <AlertDescription className="text-destructive/80">
+                  {schemaErrorMessage} Please check the URI or provide schema manually.
+                </AlertDescription>
+              </Alert>
+            ));
+            setIsFetchingSchema(false);
+            setIsLoading(false);
+            return;
+          } finally {
+            setIsFetchingSchema(false);
+          }
+        } else { // Manual input
+          if (!dbSchema.trim()) {
+            addMessage("ai", "It looks like you're asking for data. Please provide the database schema in the section above or select URI input.");
+            setIsLoading(false);
+            return;
+          }
         }
         
+        if (!currentDbSchema.trim()) {
+             addMessage("ai", "Database schema is missing. Please provide it either manually or via URI.");
+             setIsLoading(false);
+             return;
+        }
+
         addMessage("ai", `Understood. You're looking for information about: "${understandOutput.queryDetails || userMessageContent}". I'll generate an SQL query based on your schema.`);
 
         const sqlOutput: AIGenerateSQLOutput = await generateSQL({
           question: understandOutput.queryDetails || userMessageContent,
-          databaseSchema: dbSchema,
+          databaseSchema: currentDbSchema,
         });
         
-        // MOCK SQL EXECUTION & DATA FETCHING
         let mockData: any;
         const lowerQuery = (understandOutput.queryDetails || userMessageContent).toLowerCase();
         if (lowerQuery.includes("pie") || lowerQuery.includes("category") || lowerQuery.includes("distribution")) {
@@ -103,7 +153,7 @@ export function ChatInterface() {
         } else if (lowerQuery.includes("total") || lowerQuery.includes("count") || lowerQuery.includes("single value")) {
           mockData = mockSingleValue;
         }
-        else { // Default to bar chart data
+        else { 
           mockData = mockSalesDataBar;
         }
 
@@ -114,6 +164,8 @@ export function ChatInterface() {
           sqlOutput.sqlQuery,
           mockData
         );
+      } else {
+        addMessage("ai", `I've understood your query: "${userMessageContent}". It seems like a general question. While I'm best at data tasks, I can try to help! How can I assist you further with this?`);
       }
     } catch (error) {
       console.error("AI Error:", error);
@@ -140,7 +192,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background rounded-lg shadow-xl border">
-       <Accordion type="single" collapsible className="px-4 border-b">
+       <Accordion type="single" collapsible className="px-4 border-b" defaultValue="db-schema">
         <AccordionItem value="db-schema">
           <AccordionTrigger className="text-sm font-medium hover:no-underline">
             <div className="flex items-center gap-2">
@@ -149,16 +201,61 @@ export function ChatInterface() {
             </div>
           </AccordionTrigger>
           <AccordionContent className="pt-2 pb-4">
-            <Textarea
-              placeholder="Paste your database schema here (e.g., CREATE TABLE users (...), CREATE TABLE products (...))"
-              value={dbSchema}
-              onChange={(e) => setDbSchema(e.target.value)}
-              className="min-h-[100px] text-sm focus:ring-accent focus:border-accent font-mono"
-              rows={5}
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Providing an accurate schema helps me generate correct SQL queries.
-            </p>
+            <div className="space-y-4">
+              <RadioGroup 
+                value={schemaInputMethod} 
+                onValueChange={(value: string) => setSchemaInputMethod(value as 'manual' | 'uri')} 
+                className="flex space-x-4 mb-3"
+                disabled={isLoading || isFetchingSchema}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="manual" id="schema-manual" />
+                  <Label htmlFor="schema-manual">Manual Input</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="uri" id="schema-uri" />
+                  <Label htmlFor="schema-uri">Database URI</Label>
+                </div>
+              </RadioGroup>
+
+              {schemaInputMethod === 'manual' && (
+                <div>
+                  <Textarea
+                    placeholder="Paste your database schema here (e.g., CREATE TABLE users (...), CREATE TABLE products (...))"
+                    value={dbSchema}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDbSchema(e.target.value)}
+                    className="min-h-[100px] text-sm focus:ring-accent focus:border-accent font-mono"
+                    rows={5}
+                    disabled={isLoading || isFetchingSchema}
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Providing an accurate schema helps me generate correct SQL queries.
+                  </p>
+                </div>
+              )}
+
+              {schemaInputMethod === 'uri' && (
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Enter database URI (e.g., postgresql://user:pass@host:port/db)"
+                    value={dbUri}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setDbUri(e.target.value)}
+                    className="text-sm focus:ring-accent focus:border-accent font-mono"
+                    disabled={isLoading || isFetchingSchema}
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    I will attempt to fetch the schema from this URI. (Current: Mock implementation)
+                  </p>
+                  {isFetchingSchema && (
+                    <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" />
+                      Fetching schema...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -173,7 +270,7 @@ export function ChatInterface() {
               timestamp={msg.timestamp}
             />
           ))}
-          {isLoading && (
+          {isLoading && !isFetchingSchema && messages[messages.length-1]?.sender === 'user' && ( // Show "AI is thinking" only if not fetching schema and last message was user
             <div className="flex justify-start items-center gap-3 mb-4">
                <Loader2 className="h-8 w-8 animate-spin text-primary" />
                <p className="text-sm text-muted-foreground">AI is thinking...</p>
@@ -188,13 +285,13 @@ export function ChatInterface() {
             type="text"
             placeholder="Ask about your data or chat..."
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && !isLoading && !isFetchingSchema && handleSendMessage()}
             className="flex-grow focus:ring-accent focus:border-accent text-base"
-            disabled={isLoading}
+            disabled={isLoading || isFetchingSchema}
           />
-          <Button onClick={handleSendMessage} disabled={isLoading || inputValue.trim() === ""} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            {isLoading ? (
+          <Button onClick={handleSendMessage} disabled={isLoading || isFetchingSchema || inputValue.trim() === ""} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            {(isLoading || isFetchingSchema) ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Send className="h-5 w-5" />

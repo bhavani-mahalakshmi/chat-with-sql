@@ -39,3 +39,11 @@ export interface UnderstandQueryOutput {
 export interface GenerateSQLOutput {
   sqlQuery: string;
 }
+
+export interface GetDatabaseSchemaInput {
+  uri: string;
+}
+
+export interface GetDatabaseSchemaOutput {
+  schema: string;
+}
