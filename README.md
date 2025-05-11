@@ -103,3 +103,10 @@ Chat with SQL is a project that enables users to interact with SQL databases usi
 5. **Result Formatting**: The results from the database are formatted and presented back to the user in a readable format.
 
 The modular design ensures that the application can be easily extended to support additional features or integrations.
+
+
+## Copyright
+
+© 2025 Bhavani Mahalakshmi Gowri Sankar. All rights reserved.
+
+Connect with me on [LinkedIn](https://www.linkedin.com/in/bhavani-mahalakshmi-gowri-sankar-6b6a54119/) 
