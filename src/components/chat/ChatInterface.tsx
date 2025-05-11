@@ -58,6 +58,7 @@ export function ChatInterface() {
   const [isFetchingSchema, setIsFetchingSchema] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messageIdCounter = useRef(0);
 
   useEffect(() => {
     // Auto-scroll to bottom
@@ -67,9 +68,11 @@ export function ChatInterface() {
   }, [messages]);
 
   const addMessage = (sender: ChatMessage['sender'], content: ChatMessage['content'], queryDetails?: string, sqlQuery?: string, data?: any) => {
+    messageIdCounter.current += 1;
+    const newId = `${Date.now()}-${messageIdCounter.current}`;
     setMessages((prevMessages) => [
       ...prevMessages,
-      { id: String(Date.now()), sender, content, timestamp: new Date(), queryDetails, sqlQuery, data },
+      { id: newId, sender, content, timestamp: new Date(), queryDetails, sqlQuery, data },
     ]);
   };
 
