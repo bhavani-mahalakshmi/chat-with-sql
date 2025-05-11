@@ -1,4 +1,4 @@
-This application provides a chat interface for interacting with a database using AI. It leverages several key components and AI flows to understand user queries, execute database operations, and visualize the results.
+This application is an AI-powered chat interface that allows users to interact with a database using natural language queries. It leverages several key AI flows and React components to understand user intent, generate SQL queries, execute them against a connected database, and visualize the results in various formats.
 
 ## Application Logic
 
@@ -9,6 +9,10 @@ This application provides a chat interface for interacting with a database using
 5.  **Data Visualization:** The retrieved data is displayed using various visualization components:
     *   `src/components/data-viz/DataVisualizer.tsx`: Orchestrates the display of different visualization types.
     *   `src/components/data-viz/BarChartDisplay.tsx`: Displays data as a bar chart.
+    *   `src/components/data-viz/DataVisualizer.tsx`: Orchestrates the display of different visualization types.
+    *   `src/components/data-viz/BarChartDisplay.tsx`: Displays data as a bar chart.
+    *   `src/components/data-viz/PieChartDisplay.tsx`: Displays data as a pie chart.
+    *   `src/components/data-viz/TableDisplay.tsx`: Displays data in a tabular format.
     *   `src/components/data-viz/PieChartDisplay.tsx`: Displays data as a pie chart.
     *   `src/components/data-viz/TableDisplay.tsx`: Displays data in a tabular format.
     *   `src/components/data-viz/TextResponseDisplay.tsx`: Displays plain text responses.
@@ -16,3 +20,13 @@ This application provides a chat interface for interacting with a database using
 6.  **Chat Display:** Chat messages and responses are displayed using the `src/components/chat/ChatMessage.tsx` component.
 
 To get started, take a look at src/app/page.tsx.
+
+## Setup Instructions
+
+Follow these steps to set up and run the application:
+
+### 1. Install Dependencies
+
+Navigate to the project root directory in your terminal and run:
+
+
