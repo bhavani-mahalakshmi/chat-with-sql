@@ -1,32 +1,105 @@
-This application is an AI-powered chat interface that allows users to interact with a database using natural language queries. It leverages several key AI flows and React components to understand user intent, generate SQL queries, execute them against a connected database, and visualize the results in various formats.
+# Chat with SQL
 
-## Application Logic
+Chat with SQL is a project that enables users to interact with SQL databases using natural language queries. It translates user input into SQL commands, executes them on the connected database, and returns the results in a user-friendly format. The application is designed to simplify database interactions for users without requiring SQL expertise.
 
-1.  **User Interaction:** Users interact with the database through a chat interface (`src/components/chat/ChatInterface.tsx`).
-2.  **Query Understanding:** AI models analyze user queries to understand their intent (`src/ai/flows/understand-query.ts`).
-3.  **SQL Generation:** Based on the understanding, AI generates appropriate SQL queries (`src/ai/flows/generate-sql.ts`). The database schema is retrieved to aid in this process (`src/ai/flows/get-database-schema.ts`).
-4.  **Data Retrieval:** The generated SQL queries are executed against the database.
-5.  **Data Visualization:** The retrieved data is displayed using various visualization components:
-    *   `src/components/data-viz/DataVisualizer.tsx`: Orchestrates the display of different visualization types.
-    *   `src/components/data-viz/BarChartDisplay.tsx`: Displays data as a bar chart.
-    *   `src/components/data-viz/DataVisualizer.tsx`: Orchestrates the display of different visualization types.
-    *   `src/components/data-viz/BarChartDisplay.tsx`: Displays data as a bar chart.
-    *   `src/components/data-viz/PieChartDisplay.tsx`: Displays data as a pie chart.
-    *   `src/components/data-viz/TableDisplay.tsx`: Displays data in a tabular format.
-    *   `src/components/data-viz/PieChartDisplay.tsx`: Displays data as a pie chart.
-    *   `src/components/data-viz/TableDisplay.tsx`: Displays data in a tabular format.
-    *   `src/components/data-viz/TextResponseDisplay.tsx`: Displays plain text responses.
-    *   `src/components/data-viz/VisualizationTypeSelector.tsx`: Allows users to select the desired visualization type.
-6.  **Chat Display:** Chat messages and responses are displayed using the `src/components/chat/ChatMessage.tsx` component.
+## Project Overview
 
-To get started, take a look at src/app/page.tsx.
+### Core Features
+- **Natural Language to SQL Translation**: Converts user queries into optimized SQL commands.
+- **Multi-Database Support**: Compatible with various database types, including MySQL, PostgreSQL, and SQLite.
+- **Data Visualization**: Presents query results in tables, charts, or text formats.
+- **Modular Design**: Easily extendable to support additional NLP models or database types.
+
+### Tech Stack
+- **Backend**: Python (Flask) for handling API requests and database interactions.
+- **Frontend**: Next.js with Tailwind CSS for a modern and responsive UI.
+- **Database**: Supports multiple SQL databases (e.g., SQLite, PostgreSQL).
+- **NLP**: Custom AI models for query understanding and SQL generation.
 
 ## Setup Instructions
 
-Follow these steps to set up and run the application:
+### Prerequisites
+- Python 3.8 or higher
+- `pip` package manager
+- Node.js (v20 or higher)
+- A supported SQL database (e.g., MySQL, PostgreSQL, SQLite)
 
-### 1. Install Dependencies
+### Installation
 
-Navigate to the project root directory in your terminal and run:
+1. **Clone the Repository**:
+    ```bash
+    git clone https://github.com/your-username/chat-with-sql.git
+    cd chat-with-sql
+    ```
 
+2. **Backend Setup**:
+    - Create and activate a virtual environment:
+      ```bash
+      python3 -m venv venv
+      source venv/bin/activate  # On Windows: venv\Scripts\activate
+      ```
+    - Install Python dependencies:
+      ```bash
+      pip install -r requirements.txt
+      ```
+    - Configure the database connection in the [config.json](http://_vscodecontentref_/0) file:
+      ```json
+      {
+           "database": {
+                "type": "sqlite",
+                "host": "localhost",
+                "port": 5432,
+                "username": "your-username",
+                "password": "your-password",
+                "database_name": "your-database"
+           }
+      }
+      ```
 
+3. **Frontend Setup**:
+    - Install Node.js dependencies:
+      ```bash
+      npm install
+      ```
+
+4. **Environment Variables** (Optional):
+    - You can override [config.json](http://_vscodecontentref_/1) settings using environment variables:
+      ```bash
+      export DB_TYPE=sqlite
+      export DB_HOST=localhost
+      export DB_PORT=5432
+      export DB_USERNAME=your-username
+      export DB_PASSWORD=your-password
+      export DB_NAME=your-database
+      ```
+
+## Running the Application
+
+1. **Start the Backend**:
+    ```bash
+    python app.py
+    ```
+
+2. **Start the Frontend**:
+    ```bash
+    npm run dev
+    ```
+
+3. **Test the Database Connection**:
+    Run the following script to verify the database connection:
+    ```bash
+    python test_connection.py
+    ```
+
+4. **Interact with the Application**:
+    Open the application in your browser and type natural language queries to interact with your database.
+
+## Project Logic Overview
+
+1. **Input Parsing**: The user provides a natural language query through the web interface.
+2. **Natural Language Processing (NLP)**: The query is analyzed using an NLP model to extract intent and key information.
+3. **SQL Generation**: Based on the extracted information, the application generates an SQL query.
+4. **Database Interaction**: The generated SQL query is executed on the connected database.
+5. **Result Formatting**: The results from the database are formatted and presented back to the user in a readable format.
+
+The modular design ensures that the application can be easily extended to support additional features or integrations.
